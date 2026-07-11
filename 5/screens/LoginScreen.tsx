@@ -12,12 +12,16 @@ import {
   ScrollView,
   ImageBackground,
 } from 'react-native';
-import { useAppDispatch } from '../store/hooks';
-import { login, continueAsGuest } from '../store/slices/authSlice';
+import { AxiosError } from 'axios';
+import { useAuth } from '../context/AuthContext';
 import { scaleWidth, scaleHeight, scaleFont } from '../utils/responsive';
 
+interface LoginErrorResponse {
+  message?: string;
+}
+
 export default function LoginScreen() {
-  const dispatch = useAppDispatch();
+  const { login, continueAsGuest } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -32,21 +36,17 @@ export default function LoginScreen() {
     setLoading(true);
 
     try {
-      await dispatch(login({ email, password })).unwrap();
+      await login(email, password);
     } catch (error) {
+      const axiosError = error as AxiosError<LoginErrorResponse>;
       const message =
-        typeof error === 'string'
-          ? error
-          : 'Login failed. Please check your credentials.';
+        axiosError?.response?.data?.message ||
+        'Login failed. Please check your credentials.';
 
       Alert.alert('Login Error', message);
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleGuest = () => {
-    dispatch(continueAsGuest());
   };
 
   return (
@@ -129,7 +129,7 @@ export default function LoginScreen() {
 
             <TouchableOpacity
               style={styles.guestButton}
-              onPress={handleGuest}
+              onPress={continueAsGuest}
             >
               <Text style={styles.guestText}>Enter as Guest</Text>
             </TouchableOpacity>

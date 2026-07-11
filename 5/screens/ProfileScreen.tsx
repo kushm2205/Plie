@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { logout } from '../store/slices/authSlice';
+import { useAuth } from '../context/AuthContext';
 import { scaleWidth, scaleHeight, scaleFont } from '../utils/responsive';
 
 interface MenuItem {
@@ -17,13 +16,12 @@ const MENU_ITEMS: MenuItem[] = [
 ];
 
 export default function ProfileScreen() {
-  const dispatch = useAppDispatch();
-  const { user } = useAppSelector((state) => state.auth);
+  const { user, logout } = useAuth();
 
   const handleLogout = () => {
     Alert.alert('Log out', 'Are you sure you want to log out?', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Logout', style: 'destructive', onPress: () => dispatch(logout()) },
+      { text: 'Logout', style: 'destructive', onPress: logout },
     ]);
   };
 

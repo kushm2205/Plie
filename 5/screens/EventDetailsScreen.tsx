@@ -8,8 +8,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { toggleFavourite } from '../store/slices/favouritesSlice';
+import { useFavourites } from '../hooks/useFavourites';
 import { RootStackParamList } from '../types';
 import { scaleWidth, scaleHeight, scaleFont } from '../utils/responsive';
 
@@ -20,9 +19,7 @@ type EventDetailsScreenProps = NativeStackScreenProps<
 
 export default function EventDetailsScreen({ route, navigation }: EventDetailsScreenProps) {
   const { event } = route.params;
-  const dispatch = useAppDispatch();
-  const favouriteIds = useAppSelector((state) => state.favourites.ids);
-  const isFavourite = favouriteIds.includes(event.id);
+  const { isFavourite, toggleFavourite } = useFavourites();
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: scaleHeight(32) }}>
@@ -35,9 +32,9 @@ export default function EventDetailsScreen({ route, navigation }: EventDetailsSc
           <TouchableOpacity style={styles.iconButton}>
             <Text style={styles.iconText}>⤴</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.iconButton} onPress={() => dispatch(toggleFavourite(event.id))}>
-            <Text style={[styles.iconText, isFavourite && styles.heartActive]}>
-              {isFavourite ? '♥' : '♡'}
+          <TouchableOpacity style={styles.iconButton} onPress={() => toggleFavourite(event.id)}>
+            <Text style={[styles.iconText, isFavourite(event.id) && styles.heartActive]}>
+              {isFavourite(event.id) ? '♥' : '♡'}
             </Text>
           </TouchableOpacity>
         </View>

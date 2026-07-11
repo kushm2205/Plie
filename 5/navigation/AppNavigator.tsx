@@ -1,10 +1,8 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ActivityIndicator, View } from 'react-native';
-import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { restoreSession } from '../store/slices/authSlice';
-import { loadFavourites } from '../store/slices/favouritesSlice';
+import { useAuth } from '../context/AuthContext';
 import SplashScreen from '../screens/SplashScreen';
 import LoginScreen from '../screens/LoginScreen';
 import EventDetailsScreen from '../screens/EventDetailsScreen';
@@ -14,13 +12,7 @@ import { RootStackParamList } from '../types';
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function AppNavigator() {
-  const dispatch = useAppDispatch();
-  const { token, isGuest, isLoading } = useAppSelector((state) => state.auth);
-
-  useEffect(() => {
-    dispatch(restoreSession());
-    dispatch(loadFavourites());
-  }, [dispatch]);
+  const { token, isGuest, isLoading } = useAuth();
 
   if (isLoading) {
     return (

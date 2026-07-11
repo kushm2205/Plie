@@ -8,11 +8,10 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { searchEvents, clearSearchResults } from '../store/slices/eventsSlice';
-import { toggleFavourite } from '../store/slices/favouritesSlice';
+import { getEventsListing } from '../api/eventService';
+import { useFavourites } from '../hooks/useFavourites';
 import EventCard from '../components/EventCard';
-import { MainTabParamList, RootStackParamList } from '../types';
+import { MainTabParamList, MappedEvent, RootStackParamList } from '../types';
 import { CompositeScreenProps } from '@react-navigation/native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { scaleWidth, scaleHeight, scaleFont } from '../utils/responsive';
@@ -23,24 +22,26 @@ type SearchEventScreenProps = CompositeScreenProps<
 >;
 
 export default function SearchEventScreen({ navigation }: SearchEventScreenProps) {
-  const dispatch = useAppDispatch();
-  const favouriteIds = useAppSelector((state) => state.favourites.ids);
-  const { searchResults: results, searchLoading: loading } = useAppSelector(
-    (state) => state.events
-  );
+  const { isFavourite, toggleFavourite } = useFavourites();
   const [query, setQuery] = useState('');
+  const [results, setResults] = useState<MappedEvent[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const runSearch = useCallback(
-    (text: string) => {
-      setQuery(text);
-      if (!text) {
-        dispatch(clearSearchResults());
-        return;
-      }
-      dispatch(searchEvents(text));
-    },
-    [dispatch]
-  );
+  const runSearch = useCallback(async (text: string) => {
+    setQuery(text);
+    if (!text) {
+      setResults([]);
+      return;
+    }
+    setLoading(true);
+    try {
+      const list = await getEventsListing({ search: text });
+      setResults(list);
+    } catch (error) {
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -71,8 +72,8 @@ export default function SearchEventScreen({ navigation }: SearchEventScreenProps
         renderItem={({ item }) => (
           <EventCard
             event={item}
-            isFavourite={favouriteIds.includes(item.id)}
-            onToggleFavourite={() => dispatch(toggleFavourite(item.id))}
+            isFavourite={isFavourite(item.id)}
+            onToggleFavourite={() => toggleFavourite(item.id)}
             onPress={() => navigation.navigate('EventDetails', { event: item })}
           />
         )}

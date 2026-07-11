@@ -66,6 +66,16 @@ export interface LoginResponse {
   message?: string;
 }
 
+export interface AuthContextValue {
+  user: AuthUser | null;
+  token: string | null;
+  isGuest: boolean;
+  isLoading: boolean;
+  login: (email: string, password: string) => Promise<LoginResponse>;
+  logout: () => Promise<void>;
+  continueAsGuest: () => Promise<void>;
+}
+
 export type RootStackParamList = {
   MainTabs: undefined;
   EventDetails: { event: MappedEvent };

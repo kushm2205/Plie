@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,15 +8,18 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CompositeScreenProps } from '@react-navigation/native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { loadCachedEvents, fetchEvents } from '../store/slices/eventsSlice';
-import { toggleFavourite } from '../store/slices/favouritesSlice';
+import { getEventsListing } from '../api/eventService';
+import { useAuth } from '../context/AuthContext';
+import { useFavourites } from '../hooks/useFavourites';
 import EventCard from '../components/EventCard';
-import { MainTabParamList, RootStackParamList } from '../types';
+import { MainTabParamList, MappedEvent, RootStackParamList } from '../types';
 import { scaleWidth, scaleHeight, scaleFont } from '../utils/responsive';
+
+const CACHE_KEY = 'cachedEvents';
 
 type EventListingScreenProps = CompositeScreenProps<
   BottomTabScreenProps<MainTabParamList, 'Events'>,
@@ -24,19 +27,37 @@ type EventListingScreenProps = CompositeScreenProps<
 >;
 
 export default function EventListingScreen({ navigation }: EventListingScreenProps) {
-  const dispatch = useAppDispatch();
-  const { user } = useAppSelector((state) => state.auth);
-  const favouriteIds = useAppSelector((state) => state.favourites.ids);
-  const { events, loading, refreshing } = useAppSelector((state) => state.events);
+  const { user } = useAuth();
+  const { isFavourite, toggleFavourite } = useFavourites();
+  const [events, setEvents] = useState<MappedEvent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadCachedEvents = async () => {
+    const cached = await AsyncStorage.getItem(CACHE_KEY);
+    if (cached) setEvents(JSON.parse(cached));
+  };
+
+  const fetchEvents = useCallback(async () => {
+    try {
+      const list = await getEventsListing();
+      setEvents(list);
+      await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(list));
+    } catch (error) {
+      await loadCachedEvents();
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
 
   useEffect(() => {
-    dispatch(loadCachedEvents()).finally(() => {
-      dispatch(fetchEvents());
-    });
-  }, [dispatch]);
+    loadCachedEvents().finally(fetchEvents);
+  }, [fetchEvents]);
 
   const onRefresh = () => {
-    dispatch(fetchEvents());
+    setRefreshing(true);
+    fetchEvents();
   };
 
   if (loading) {
@@ -71,8 +92,8 @@ export default function EventListingScreen({ navigation }: EventListingScreenPro
         renderItem={({ item }) => (
           <EventCard
             event={item}
-            isFavourite={favouriteIds.includes(item.id)}
-            onToggleFavourite={() => dispatch(toggleFavourite(item.id))}
+            isFavourite={isFavourite(item.id)}
+            onToggleFavourite={() => toggleFavourite(item.id)}
             onPress={() => navigation.navigate('EventDetails', { event: item })}
           />
         )}
